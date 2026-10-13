@@ -1,0 +1,8 @@
+roms/*.zip
+dist/
+*.mp4
+*.webm
+theact/
+__pycache__/
+store.json
+videos.json
