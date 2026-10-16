@@ -17,6 +17,7 @@ tools/
   build_web.py      arma el receptor web desde src/
   html2pydaphne.py  convierte un receptor HTML (un archivo, carpeta o zip) en app PyDaphne
 roms/           pon aquí tus zips (no se incluyen)
+the act game/   kit de recompilación de The Act (motor "decaf", recompilador Thumb-2 → JS, build_act.py)
 ```
 
 ## 1. Compilar el receptor web
@@ -49,6 +50,14 @@ python -m pydaphne --no-window          # sólo servidor (para el celular en la 
   lista la biblioteca de ROMs (`/api/roms`) y abre la ventana.
 - Los núcleos de CPU siguen en JavaScript dentro del motor web: traducirlos a Python
   puro los haría cientos de veces más lentos.
+
+## The Act (`the act game/`)
+
+Kit de Luis para reconstruir The Act desde **tu propia copia** del juego: `build_act.py`
+extrae y recompila la lógica (Thumb-2 → JS) y arma el runtime HTML5 (`runtime/`), con
+lanzadores para PC y gabinete en `launcher/`. Ver `the act game/LEEME.md`. El kit no
+trae ningún dato del juego (video, sonido ni binarios). La carpeta resultante se puede
+copiar como `theact/` en el receptor para el canal 232 (`build_web.py --theact`).
 
 ## Controles
 
