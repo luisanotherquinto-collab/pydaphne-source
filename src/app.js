@@ -659,6 +659,7 @@ async function tuneDaphne(ch) {
   if (game.res.missing.length) toast('Faltan ROMs de ' + setName + ': ' + game.res.missing.join(', '), 5000);
   S.game = game; ovc.width = game.ow; ovc.height = game.oh;
   if (ch.wide || game.wide) tv.classList.add('wide');
+  if (game.setFreePlay && S.settings['fp_' + ch.n] !== undefined) game.setFreePlay(!!S.settings['fp_' + ch.n]);
   /* PyDaphne: videos asignados por canal desde Python (videos.json → /video/<canal>) */
   if (window.PYDAPHNE && !S.video.has) fetch('/api/videos').then(r => r.json()).then(v => { if (v[ch.n] && S.cur === ch && !S.video.has) { S.video.setOnline('/video/' + ch.n, 0); toast('PyDaphne: video del canal ' + ch.n, 2500); } }).catch(() => {});
   if (ch.cabinet) cabinetOn(ch.cabinet);
@@ -691,6 +692,7 @@ function renderCard(ch, saved) {
     <div class="row" ${ch.nodisc ? 'hidden' : ''}><button class="bevel gold" id="cLoad">${hasVid ? 'Cambiar laserdisc' : 'Cargar laserdisc'}</button>
       ${saved ? '<button class="bevel" id="cRe">Reconectar ' + (saved.names || []).join(', ') + '</button>' : ''}
       <label>Cuadro inicial <input class="bevel" id="cStart" type="number" value="${S.video.segs[0] ? S.video.segs[0].start : 0}" style="width:90px"></label></div>
+    ${S.game && S.game.setFreePlay ? `<div class="row"><label><input type="checkbox" id="cFree" ${S.game.freePlay ? 'checked' : ''}> Juego libre (free play)</label></div>` : ''}
     <div class="row" ${ch.nodisc ? 'hidden' : ''}><input class="bevel" id="cUrl" placeholder="Video en línea: URL de YouTube o mp4" value="${esc(S.video.onlineUrl || (() => { try { return localStorage.getItem('ddn.url.' + ch.n) || ''; } catch (e) { return ''; } })())}" style="flex:1;min-width:0"><button class="bevel" id="cUrlGo">Usar URL</button></div>
     <p style="color:#93a4dd;font-size:13px">${ch.keys || ''} · Tab: guía · I: info</p>`;
   c.style.display = 'block'; c.className = hasVid || document.body.classList.contains('touch') ? 'min' : '';
@@ -698,6 +700,7 @@ function renderCard(ch, saved) {
   c.querySelector('h2').onclick = () => c.classList.remove('min');
   $('#cSet').onchange = e => tune(ch.n, e.target.value, true);
   $('#cLoad').onclick = () => pickDisc(ch);
+  { const fp = $('#cFree'); if (fp) fp.onchange = () => { if (S.game && S.game.setFreePlay) { S.game.setFreePlay(fp.checked); S.settings['fp_' + ch.n] = fp.checked; saveSettings(); toast(fp.checked ? 'Juego libre activado' : 'Juego libre apagado: monedas y attract con créditos', 2500); } }; }
   { const go = $('#cUrlGo'); if (go) go.onclick = () => { const u = $('#cUrl').value.trim(); if (!u) return; S.video.setOnline(u, +($('#cStart') && $('#cStart').value) || 0); try { localStorage.setItem('ddn.url.' + ch.n, u); } catch (e) {} toast(parseYouTube(u) ? 'YouTube conectado como laserdisc' : 'Video en línea conectado', 3000); }; }
   $('#cStart').onchange = e => { const v = +e.target.value || 0; if (S.video.segs.length === 1) { S.video.segs[0].start = v; } };
   if (saved) $('#cRe').onclick = async () => {
