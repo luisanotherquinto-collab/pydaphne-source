@@ -103,6 +103,9 @@ const CHANNELS = [
     desc: 'FANGAME — del prototipo de Atari sólo sobrevivieron el laserdisc y la descripción: se jugaba frente a un proyector golpeando una pelota de golf real. El romset es nuevo (driver golftrnr.cpp de Luis). Carga el laserdisc del juego (18:07, 32578 cuadros): partida desde 360, mapa del hoyo en 28112.', keys: 'Espacio o 1: golpe · 5/6: monedas · 9: servicio · 0: self test' },
   { n: 232, call: 'ACT', title: 'The Act', year: 2007, maker: 'Cecropia', src: 'theact/index.html', notLD: 1, hw: 'NO es laserdisc: animación a mano en video digital + motor "decaf" (recomp de Luis, Thumb-2 → JS)',
     desc: 'Parece un juego de laserdisc, pero no lo es: la arcade de 2007 reproduce animación dibujada a mano (estilo Disney) desde disco duro, y una sola perilla controla las emociones de Edgar. Esta es la recompilación de Luis con su motor de escenas. Corre en un servidor local: abre el receptor con JUGAR.bat o jugar.py.', keys: 'Perilla: ←/→ o ratón · el juego trae sus propios controles táctiles' },
+  { n: 233, call: 'SBY', title: 'Star Blazers / Space Battleship Yamato', year: 1985, maker: 'Taito / West Cape', drv: 'sbyamato', analog: 'px', hw: '68000 10 MHz (Musashi WASM) · texto 2 bpp + sprites por bloques 4 bpp · LD-V1000 · Z80 + 2× YM2203 + DAC (núcleo de Luis, nativo)',
+    sets: [['sbyamato', 'Space Battleship Yamato']],
+    desc: 'El shooter de laserdisc de la serie Yamato, emulado desde la PCB real (romset sbyamato) con el núcleo de Luis.', keys: 'Ratón/táctil o flechas: mira · clic/Espacio: disparo · 5 moneda · 1 inicio · 0 test' },
   { n: 301, call: 'STAR', title: 'Star Rider', year: 1983, maker: 'Williams', drv: 'starrider', analog: 'px', hw: '6809 + PIF 6809 + 6808 · blitter Williams · PR-8210A · expansor VGG (núcleo de Luis, nativo)',
     sets: [['starridr', 'Producción'], ['starridrp3', 'CPU prototipo 3'], ['starridr_pif', 'PIF actualizado']],
     desc: 'Motos futuristas con blitter de Williams sobre el disco DISCAN. El disco se compone con el expansor y el retrovisor como en la placa (con video en línea va detrás, sin expansor).', keys: '←/→ o ratón: manubrio · ↑ acelerar · ↓ frenar · Espacio turbo · X alto/bajo · 1 inicio · 5 moneda · 0 avance · 9 auto' },
@@ -1384,6 +1387,32 @@ function addCustom() {
   await loadEmbedded();
   try { S.customs = (await IDB.get('customs')) || []; } catch (e) { S.customs = []; }
   requestAnimationFrame(loop);
+  /* modo sin interfaz para frontends (LaunchBox, Hyperspin, Attract-Mode, RetroBat…):
+     index.html?channel=304&set=lgp&video=URL&start=0&crt=ntsc&freeplay=1&lang=es&uiless=1
+     arranca directo en el juego, sin guía ni perfiles; Esc cierra (PyDaphne termina el proceso). */
+  const Q = new URLSearchParams(location.search);
+  if (Q.get('uiless') === '1' || Q.get('channel')) {
+    const uiless = Q.get('uiless') === '1';
+    if (uiless) document.body.classList.add('uiless');
+    if (Q.get('lang')) setLang(Q.get('lang'));
+    if (Q.get('crt')) { S.settings.crtMode = Q.get('crt'); applyCrt(); }
+    if (!S.player) { try { setPlayer(Q.get('player') || 'FRONTEND'); } catch (e) {} }
+    const n = +Q.get('channel') || 201;
+    await tune(n, Q.get('set') || null, true);
+    if (Q.get('freeplay') !== null && S.game && S.game.setFreePlay) S.game.setFreePlay(Q.get('freeplay') === '1');
+    const v = Q.get('video');
+    if (v) S.video.setOnline(v, +Q.get('start') || 0);
+    S.mode = 'tv'; try { closeGuide(); } catch (e) {}
+    if (uiless) {
+      const card = $('#card'); if (card) card.classList.add('min');
+      addEventListener('keydown', e => {
+        if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); fetch('/api/quit', { method: 'POST' }).catch(() => {}); setTimeout(() => window.close(), 150); }
+        if (e.code === 'Tab' || e.code === 'KeyM' && !(S.game && S.game.keymap && S.game.keymap.KeyM)) { e.preventDefault(); e.stopImmediatePropagation(); }
+      }, true);
+      if (Q.get('fullscreen') === '1') addEventListener('pointerdown', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); }, { once: true });
+    }
+    return;
+  }
   let last = [201, null]; try { last = JSON.parse(localStorage.getItem('ddn.last')) || last; } catch (e) {}
   await tune(last[0], last[1], true);
   openGuide();
